@@ -53,21 +53,21 @@ This document identifies all gaps between the two documents, categorizes them by
 - No save transfer mechanism between local and server
 - Server saves are isolated to server sessions only
 
-### 1.3 Data Conversion Pipeline — 🔴 CLOSED
+### 1.3 Asset Creation — 🔴 CLOSED
 
 | Aspect       | GDD Description             | Plan Description                        | Gap                         |
 | ------------ | --------------------------- | --------------------------------------- | --------------------------- |
-| **Textures** | PPM format (SGI "rgb")      | Mentions "PNG/WebP" but no pipeline     | **No conversion tool/task** |
-| **Models**   | .tri and .ac (AC3D) formats | Mentions "GLTF/BABYLON" but no pipeline | **No conversion tool/task** |
-| **Audio**    | WAV files                   | `SoundManager.ts` interface only        | **Format not specified**    |
+| **Textures** | PPM format (SGI "rgb")      | PNG/WebP textures, all original         | **No legacy assets needed** |
+| **Models**   | .tri and .ac (AC3D) formats | GLTF/GLB models, all original           | **No conversion pipeline**  |
+| **Audio**    | WAV files                   | WAV/Ogg/MP3, all original               | **Format strategy defined** |
 
-**Decision:** One-time conversion task. Convert PPM→PNG, .tri/.ac→GLTF. May replace original models later.
+**Decision:** All assets created from scratch. No licensing concerns. Use BabylonJS-native GLTF/GLB for models, PNG/WebP for textures, Ogg/MP3 for audio.
 
-**Implications for Plan:**
-
-- Add Phase 0.12: Data Conversion Pipeline (PPM→PNG, .tri→GLTF, .ac→GLTF)
-- Add build script `npm run convert-assets`
-- Audio: Keep WAV for native, convert to Ogg/MP3 for web
+**Asset sources:**
+- Models: Blender (free), Kenney asset packs (CC0), OpenGameArt
+- Textures: Krita/Photoshop (original), Kenney (CC0), procedural generation
+- SFX: Freesound.org (CC0), BFXR, original compositions
+- Music: Incompetia (free), Kenney (CC0), original compositions
 
 ---
 
@@ -123,19 +123,20 @@ This document identifies all gaps between the two documents, categorizes them by
 - Use BabylonJS `AudioEngine` for platform-agnostic playback
 - Consider adding 3D positional audio for web (BabylonJS supports it natively)
 
-### 2.4 Model Conversion Pipeline
+### 2.4 Original Asset Pipeline
 
 | Aspect              | GDD                        | Plan                           | Gap                                         |
 | ------------------- | -------------------------- | ------------------------------ | ------------------------------------------- |
-| **.tri loader**     | Simple vertex format       | Phase 1 mentions `.tri` loader | **OK — simple to implement**                |
-| **.ac loader**      | AC3D format with materials | Not addressed                  | **AC3D is complex — needs conversion tool** |
-| **Texture binding** | PPM textures on models     | Mentions "GLTF/BABYLON"        | **Conversion pipeline needed**              |
+| **Model format**    | .tri and .ac (AC3D)        | GLTF/GLB (BabylonJS native)    | **No conversion needed — all original**     |
+| **Texture format**  | PPM                        | PNG/WebP                       | **No conversion needed — all original**     |
+| **Audio format**    | WAV                        | WAV/Ogg/MP3                    | **Multi-format strategy defined**           |
 
-**Recommended decision:**
+**Recommended approach:**
 
-- Convert .ac files to GLTF using Blender or AC3D export tool (one-time)
-- Keep .tri loader in code (simple enough to parse at runtime)
-- Store converted assets in `data/models/gltf/` and `data/textures/png/`
+- Use BabylonJS's built-in GLTF/GLB loader (no custom loader needed)
+- PNG/WebP textures via `BABYLON.Texture` — no PPM reader needed
+- Audio: WAV for Electron/Tauri, Ogg/MP3 for web via `BABYLON.Sound`
+- All assets stored in `data/models/`, `data/textures/`, `data/sounds/`, `data/music/`
 
 ---
 
@@ -221,7 +222,7 @@ These are additions in the implementation plan that have no counterpart in the G
 | D004 | Single-player saves: local only (file I/O native, IndexedDB web)              | 2026-11-23 | Clean separation; no sync complexity                                                                                                                    |
 | D005 | Server saves: server-side only                                                | 2026-11-23 | Server authority; no client tampering                                                                                                                   |
 | D006 | No cross-sync between local and server saves                                  | 2026-11-23 | Prevents save manipulation; keeps architecture simple                                                                                                   |
-| D007 | One-time data conversion pipeline (PPM→PNG, .tri/.ac→GLTF)                    | 2026-11-23 | Convert once, use forever. May replace models later anyway.                                                                                             |
+| D007 | Source/create all original assets: models, textures, SFX, music           | 2026-11-23 | All assets in `data/` as GLTF/PNG/Ogg. No legacy assets, no licensing concerns. Use CC0 sources or original compositions.                                                                                             |
 
 ---
 
@@ -229,11 +230,14 @@ These are additions in the implementation plan that have no counterpart in the G
 
 ### 7.1 Phase 0 Additions
 
-- **Task 0.12:** Data conversion pipeline (PPM→PNG, .tri→GLTF, .ac→GLTF)
-- **Task 0.13:** Relay server scaffolding (`RelayServer.ts`) — dual transport (Steam SDR + WebSocket)
-- **Task 0.14:** Steamworks.js setup for Electron/Tauri (Rust N-API wrapper)
-- **Task 0.15:** Steam OpenID authentication flow for browser clients
-- **Task 0.16:** Server discovery via `IGameServersService/GetServerList` HTTP API
+- **Task 0.12:** Source/create original assets: ship, station, starfield GLTF models
+- **Task 0.13:** Source/create original textures: planets, space backgrounds (PNG/WebP)
+- **Task 0.14:** Source/create original sound effects: engines, weapons, explosions
+- **Task 0.15:** Source/create original music tracks
+- **Task 0.16:** Relay server scaffolding (`RelayServer.ts`) — dual transport (Steam SDR + WebSocket)
+- **Task 0.17:** Steamworks.js setup for Electron/Tauri (Rust N-API wrapper)
+- **Task 0.18:** Steam OpenID authentication flow for browser clients
+- **Task 0.19:** Server discovery via `IGameServersService/GetServerList` HTTP API
 
 ### 7.2 New Phase — Network Infrastructure
 
@@ -273,15 +277,10 @@ New phase for "Phase 11 — Dedicated Server":
 ```
 data/
 ├── missions/          # .msn and .inc files (unchanged)
-├── models/
-│   ├── tri/           # Original .tri files (kept for reference)
-│   └── gltf/          # Converted .gltf/.glb files (used at runtime)
-├── textures/
-│   ├── ppm/           # Original PPM files (kept for reference)
-│   └── png/           # Converted PNG files (used at runtime)
-└── sounds/
-    ├── wav/           # Original WAV files (used by Electron/Tauri)
-    └── ogg/           # Converted OGG files (used by web)
+├── models/            # Original GLTF/GLB ship/station/starfield models
+├── textures/          # PNG/WebP planet/space/background textures
+├── sounds/            # Original SFX (WAV for native, Ogg for web)
+└── music/             # Original music tracks (Ogg/MP3)
 ```
 
 ---
@@ -293,7 +292,7 @@ data/
 | `implementation_plan.md` §1.1           | Add Steam/WebRTC architecture decision table                                                                  |
 | `implementation_plan.md` §2             | Update project structure with Steam, RelayServer, NetworkBridge                                               |
 | `implementation_plan.md` §3.4–3.5       | Update Electron/Tauri to include Steam SDK setup                                                              |
-| `implementation_plan.md` §4 (Phase 0)   | Add tasks 0.12–0.15 (data conversion, relay server, Steam SDK)                                                |
+| `implementation_plan.md` §4 (Phase 0)   | Add tasks 0.12–0.19 (asset creation, relay server, Steam SDK)                                                |
 | `implementation_plan.md` §13 (Phase 9)  | Split into SP save (local) and server save                                                                    |
 | `implementation_plan.md` §14 (Phase 10) | Restructure: Steam client (via steamworks.js), WebSocket client, NetworkedGame                                |
 | `implementation_plan.md` §15 (Phase 11) | New phase: RelayServer (dual transport), NetworkBridge, ServerSaveManager, OpenID auth, Steam API integration |
@@ -351,6 +350,60 @@ This research confirms our hybrid approach:
 - **Electron/Tauri:** Full Steamworks SDK via `steamworks.js` — best experience, full Steam features
 - **Browser:** WebSocket to relay server — limited but functional, no Steam overlay/lobby integration
 - **Dedicated Server:** Dual transport — bridges both worlds
+
+### 9.5 VR / WebXR Stretch Goal
+
+**Goal:** Play Orbit in a VR headset with full 360° visibility and VR controller flight controls.
+
+#### A. BabylonJS WebXR Support
+
+BabylonJS has one of the most mature WebXR implementations in any game engine:
+
+- **WebXRManager** — single entry point for all XR functionality
+- **WebXRCamera** — replaces standard camera; handles HMD tracking natively
+- **XR Input Sources** — abstracts VR controllers (Oculus Touch, Valve Index, Vive, etc.)
+- **XR DOM Overlay** — renders HTML UI as 3D meshes in the headset
+- **Teleportation** — built-in teleportation system for locomotion
+- **Hand tracking** — experimental support via WebXR Hand Tracking API
+
+#### B. Flight Controls in VR
+
+| Input | VR Controller Mapping |
+|-------|----------------------|
+| Yaw/Pitch | Left thumbstick or HMD orientation |
+| Roll | Right thumbstick or grip trigger |
+| Thrust | Grip trigger (squeeze to accelerate) |
+| Warp | Button combo (e.g., trigger + grip) |
+| Fire | Index finger trigger |
+| HUD interaction | Pointer ray + select button |
+
+#### C. HUD Redesign for VR
+
+2D overlay HUD doesn't work in XR. Must become:
+- **3D floating panels** — DOM Overlay API renders HTML as textured planes in-world
+- **Gaze-based or pointer-based selection** — controller ray casts to interact with buttons
+- **Scale considerations** — panels at comfortable reading distance (~1-2m virtual)
+
+#### D. Comfort & Scale Considerations
+
+| Issue | Solution |
+|-------|----------|
+| Motion sickness from artificial locomotion | No forward movement — only rotation + warp; player stays stationary, ship orbits in place |
+| Scale of solar system | Compress distances for VR readability; keep proportions but reduce scale factor |
+| Starfield at extreme distance | Stars rendered as billboard sprites on inner sphere; outer space = procedural shader |
+
+#### E. Technical Hurdles
+
+1. **BabylonJS WebXRManager integration** — swap camera, configure input sources, handle session lifecycle
+2. **Controller mapping** — abstract across headset types (Oculus, Vive, Index, Quest via Link/AirLink)
+3. **VR-safe UI** — DOM Overlay panels must scale to headset FOV; button hitboxes need to be large enough for pointer rays
+4. **Performance** — VR requires 72-90 FPS (varies by headset); must maintain frame budget with BabylonJS rendering pipeline
+
+#### F. Architecture Decision Impact
+
+- **WebXR is a browser feature** — works in both web and native builds (Electron supports WebXR via flags)
+- **No separate multiplayer integration needed** — VR is a single-player mode; can play in multiplayer sessions
+- **Phase placement:** Late-stage stretch goal after core gameplay is solid; requires its own phase
 
 ---
 

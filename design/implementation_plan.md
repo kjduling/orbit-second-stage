@@ -22,8 +22,9 @@
 13. [Phase 9 — Save System & Polish](#13-phase-9--save-system--polish)
 14. [Phase 10 — Multiplayer Layer](#14-phase-10--multiplayer-layer)
 15. [Phase 11 — Electron / Tauri Native Builds](#15-phase-11--electron--tauri-native-builds)
-16. [Testing Strategy](#16-testing-strategy)
-17. [Risk Register](#17-risk-register)
+16. [Phase 12 — WebXR / VR Support (Stretch Goal)](#16-phase-12--webxr--vr-support-stretch-goal)
+17. [Testing Strategy](#17-testing-strategy)
+18. [Risk Register](#18-risk-register)
 
 ---
 
@@ -270,11 +271,12 @@ orbit/
 │       ├── mission-load.test.ts     # Full mission load → state check
 │       └── combat-flow.test.ts      # Fire missile → hit → damage
 │
-├── data/                    # Game data (from original)
+├── data/                    # Game assets (all original, no licensing concerns)
 │   ├── missions/            # .msn and .inc files
-│   ├── models/              # .tri and .ac model files
-│   ├── maps/                # Planet texture PPMs
-│   └── sounds/              # WAV files
+│   ├── models/              # Original ship/station/starfield GLTF/GLB models
+│   ├── textures/            # Planet/space/background PNG/WebP textures
+│   ├── sounds/              # Original SFX (explosions, engines, weapons)
+│   └── music/               # Original background music tracks
 │
 ├── dist/                    # Build output
 ├── coverage/                # Vitest coverage reports
@@ -424,11 +426,14 @@ Server:
 | 0.9  | Implement `Logger` (structured, log levels)                           | `tests/core/logger.test.ts` — log levels, output formatting                             | ≥90% coverage |
 | 0.10 | Initialize Electron app (`electron/`)                                 | `npm run electron:start` opens window                                                   | N/A           |
 | 0.11 | Initialize Tauri app (`tauri/`)                                       | `npm run tauri:dev` opens window                                                        | N/A           |
-| 0.12 | Set up data conversion pipeline (PPM→PNG, .tri/.ac→GLTF)              | `npm run convert-assets` converts all legacy assets                                     | N/A           |
-| 0.13 | Scaffold relay server (`RelayServer.ts`)                              | Dual transport: Steam SDR + WebSocket listeners                                         | N/A           |
-| 0.14 | Integrate `steamworks.js` for Electron/Tauri                          | Full Steam SDK access in native builds (lobby, SDR, overlay)                             | N/A           |
-| 0.15 | Implement Steam OpenID auth flow                                      | Browser → OpenID login → SteamID64 verification via Web API                              | N/A           |
-| 0.16 | Implement server discovery (`IGameServersService/GetServerList`)      | JSON server list endpoint for browser matchmaking                                       | N/A           |
+| 0.12 | Source/create original assets: ship, station, starfield GLTF models       | All models in `data/models/` as GLTF/GLB                            | N/A           |
+| 0.13 | Source/create original textures: planets, space backgrounds (PNG/WebP)    | All textures in `data/textures/`                                    | N/A           |
+| 0.14 | Source/create original sound effects: engines, weapons, explosions        | All SFX in `data/sounds/` as WAV/Ogg                                | N/A           |
+| 0.15 | Source/create original music tracks                                       | All music in `data/music/` as Ogg/MP3                               | N/A           |
+| 0.16 | Scaffold relay server (`RelayServer.ts`)                                  | Dual transport: Steam SDR + WebSocket listeners                     | N/A           |
+| 0.17 | Integrate `steamworks.js` for Electron/Tauri                          | Full Steam SDK access in native builds (lobby, SDR, overlay)                             | N/A           |
+| 0.18 | Implement Steam OpenID auth flow                                      | Browser → OpenID login → SteamID64 verification via Web API                              | N/A           |
+| 0.19 | Implement server discovery (`IGameServersService/GetServerList`)      | JSON server list endpoint for browser matchmaking                                       | N/A           |
 
 ### 4.2 Key Interfaces (Phase 0)
 
@@ -488,7 +493,7 @@ interface EventBus<TEvents extends Record<string, unknown>> {
 | 1.1 | Initialize BabylonJS scene                                  | Scene renders black screen                       | N/A                                                                                |
 | 1.2 | Implement `Starfield` (65K+ stars, two density levels)      | Visible starfield with depth sorting             | `tests/planets/starfield.test.ts` — star count, brightness mapping, culling        |
 | 1.3 | Create `Sun` mesh (glowing sphere, light source)            | Glowing sun at origin                            | N/A                                                                                |
-| 1.4 | Load and render a ship model (`light2.tri` or equivalent)   | Ship mesh visible in scene                       | `tests/core/tri-loader.test.ts` — vertex parsing, bounding box, normal computation |
+| 1.4 | Load and render an original ship model (GLTF/GLB)   | Ship mesh visible in scene                       | `tests/core/model-loader.test.ts` — GLTF parsing, bounding box, material setup |
 | 1.5 | Implement `InputManager` (keyboard + joystick abstraction)  | `IInputManager` interface + `KeyboardInput` impl | `tests/player/input-manager.test.ts` — key state tracking, axis mapping            |
 | 1.6 | Implement `Camera` wrapper around BabylonJS ArcRotateCamera | Camera responds to input                         | N/A                                                                                |
 | 1.7 | Wire camera to ship orientation (view lock mode)            | Camera orbits ship with pitch/yaw                | N/A                                                                                |
@@ -517,17 +522,19 @@ interface IShipModel {
 }
 ```
 
-### 5.3 .tri Model Loader
+### 5.3 Original Asset Pipeline
 
-The `.tri` format is simple enough to load without external dependencies:
+All assets are created from scratch — no legacy Orbit game assets, no licensing concerns.
 
-```
-v1x v1y v1z  v2x v2y v2z  v3x v3y v3z  0xRRGGBB
-```
+**Models:** GLTF/GLB format (BabylonJS native). Exported from Blender or purchased from asset stores (Kenney, OpenGameArt, etc.).
 
-One triangle per line. Parse into BabylonJS `DynamicMesh` with vertex colors.
+**Textures:** PNG/WebP for planets, space backgrounds, UI elements. Generated procedurally or painted in Krita/Photoshop.
 
-**Test:** Load a `.tri` file, verify vertex count, bounding box, and color extraction.
+**Audio:** WAV for native builds, Ogg/MP3 for web. SFX from Freesound.org (CC0), BFXR, or original compositions.
+
+**Music:** Ogg/MP3 format. Original compositions or royalty-free tracks (Incompetia, Kenney).
+
+**Test:** Load a GLTF model from `data/models/`, verify vertex count, bounding box, and material rendering.
 
 ---
 
@@ -612,7 +619,7 @@ interface IGravityEngine {
 | 3.2 | Implement planet rendering (distance-based LOD)            | Textured spheres → points based on distance | N/A                                                                          |
 | 3.3 | Implement planetary ring systems (4 rings)                 | Jupiter, Saturn, Uranus, Neptune rings      | `tests/planets/ring-system.test.ts` — inner/outer radius, texture bounds     |
 | 3.4 | Implement orbital animation                                | Planets orbit in XZ plane around primary    | `tests/planets/orbital-mechanics.test.ts` — angular velocity, orbit position |
-| 3.5 | Load planet textures from PPM files                        | Textured planets with correct colors        | N/A                                                                          |
+| 3.5 | Load planet textures from PNG/WebP files                     | Textured planets with correct colors        | N/A                                                                          |
 | 3.6 | Implement planet name labels (billboarded text)            | Names appear above planets at distance      | N/A                                                                          |
 | 3.7 | Implement planet hiding/unhiding (mission events)          | `HidePlanet` / `UnhidePlanet` actions work  | `tests/missions/action-processor.test.ts`                                    |
 
@@ -1200,7 +1207,106 @@ RelayServer.ts:
 
 ---
 
-## 16. Testing Strategy
+## 16. Phase 12 — WebXR / VR Support (Stretch Goal)
+
+**Goal:** Play Orbit in a VR headset with full 360° visibility and VR controller flight controls.
+**Duration:** ~3-4 days (stretch goal, after core gameplay solid)
+**Visual gratification:** 🌟🌟🌟🌟🌟🌟 Put on the headset and fly the Defiant!
+
+### 12.1 Tasks
+
+| #    | Task                                              | Deliverable                                    | Tests                                                   |
+| ---- | ------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| 12.1 | Integrate `WebXRManager` in BabylonJS scene       | XR session entry point, HMD tracking active    | `tests/xr/webxr-init.test.ts` — session start/stop      |
+| 12.2 | Implement `WebXRCamera` swap                      | HMD replaces standard camera                   | `tests/xr/camera-swap.test.ts` — XR vs standard modes   |
+| 12.3 | Map VR controller inputs to flight controls        | Thumbstick → yaw/pitch, trigger → thrust/fire  | `tests/xr/controller-mapping.test.ts` — all inputs      |
+| 12.4 | Implement VR flight model (rotation-only)          | No artificial locomotion; only rotate + warp   | Same as Phase 2 tests (polymorphic)                     |
+| 12.5 | Create XR DOM Overlay HUD panels                  | 3D floating UI panels in headset               | `tests/xr/hud-panels.test.ts` — panel rendering, scale  |
+| 12.6 | Implement pointer-based HUD interaction            | Controller ray casts to select buttons         | `tests/xr/hud-interaction.test.ts` — hitbox detection   |
+| 12.7 | Compress solar system scale for VR readability     | Proportional distances, readable at headset FOV| `tests/xr/scale-compression.test.ts`                    |
+| 12.8 | Implement VR comfort features                      | Vignette, motion sickness prevention           | `tests/xr/comfort.test.ts` — vignette toggle            |
+| 12.9 | Add XR session lifecycle management                | Enter/exit XR gracefully, state preservation   | `tests/xr/session-lifecycle.test.ts`                    |
+| 12.10| Implement multi-headset support                    | Oculus Touch, Valve Index, Vive, Quest         | Manual test matrix per headset                            |
+| 12.11| VR multiplayer integration (optional)             | VR player in shared sessions via relay server  | `tests/xr/multiplayer.test.ts`                          |
+
+### 12.2 VR Controller Input Mapping
+
+```typescript
+enum XRInput {
+  // Left controller — orientation / yaw-pitch
+  LEFT_THUMBSTICK_X = 'thumbstickX',
+  LEFT_THUMBSTICK_Y = 'thumbstickY',
+  LEFT_TRIGGER      = 'trigger',       // grip to activate thrusters
+  LEFT_GRIP         = 'grip',          // squeeze for roll
+  
+  // Right controller — weapon systems
+  RIGHT_TRIGGER     = 'trigger',       // index finger → fire weapons
+  RIGHT_THUMBSTICK_X = 'thumbstickX', // roll control
+  RIGHT_SELECT      = 'select',        // button press → interact with HUD
+}
+
+class VRFlightController {
+  private xrInput: XRInputSource;
+  
+  getYawPitch(): Vector2 { /* left thumbstick */ }
+  getRoll(): number { /* right thumbstick or grip trigger */ }
+  getThrust(): number { /* left trigger — 0 to 1 squeeze */ }
+  isFiring(): boolean { /* right trigger pressed */ }
+  wantsWarp(): boolean { /* trigger + grip combo */ }
+  interactWithPanel(panel: XRHUDPanel): void { /* pointer ray select */ }
+}
+```
+
+### 12.3 VR HUD Panel Architecture
+
+DOM Overlay renders HTML as 3D textured planes in the headset:
+
+```typescript
+class XRHUDManager {
+  private panels: Map<string, XRDOMOverlayPanel> = new Map();
+  
+  createPanel(name: string, htmlTemplate: string): XRDOMOverlayPanel {
+    // BabylonJS WebXR DOM Overlay renders HTML as a plane mesh
+    const panel = this.xrManager.createDOMOverlayPanel(name, htmlTemplate);
+    panel.setPosition(0, 0.3, -1.5); // 1.5m in front of player
+    panel.setSize(0.8, 0.4);         // 80cm × 40cm at reading distance
+    return panel;
+  }
+  
+  // Panels: shields/armor (left), weapons (right), radar (center-bottom)
+}
+```
+
+**Panel layout in headset:**
+```
+        ┌─────────────────┐
+        │   Orbit Radar   │  ← center, slightly below eye level
+        └─────────────────┘
+  ┌───────────┐    ┌───────────┐
+  │ Shields/  │    │ Weapons/  │
+  │ Armor     │    │ Systems   │
+  └───────────┘    └───────────┘
+```
+
+### 12.4 Comfort & Motion Sickness Prevention
+
+| Issue | Solution |
+|-------|----------|
+| **Artificial locomotion** | No forward translation — player rotates in place, ship orbits around them |
+| **Warp speed motion** | Vignette effect (peripheral blur) during warp; smooth fade-in/fade-out |
+| **Scale disorientation** | Solar system distances compressed by ~10× for VR readability; proportions maintained |
+| **Starfield depth** | Stars on inner sphere (2m radius); outer space = procedural gradient shader |
+
+### 12.5 Architecture Decision — WebXR is Browser-Native
+
+- WebXR works in **both web and native builds** (Electron supports WebXR via `--enable-features=WebXRPolyfill`)
+- No separate networking needed — VR player joins multiplayer sessions like any other client
+- `WebXRManager` integrates into existing BabylonJS scene with minimal changes
+- **Phase placement:** After Phase 10 (multiplayer) so VR can optionally join shared sessions
+
+---
+
+## 17. Testing Strategy
 
 ### 16.1 Test Categories (mirrors CharGen)
 
@@ -1209,6 +1315,7 @@ RelayServer.ts:
 | **Unit tests**        | `tests/core/`, `tests/player/`, `tests/weapons/`, etc. | Individual functions/classes          | ≥90% all metrics    |
 | **Integration tests** | `tests/integration/`                                   | Multi-system workflows                | Key paths only      |
 | **Invariant suite**   | `tests/domain/invariant-suite.test.ts`                 | Property-based testing for physics/AI | Critical invariants |
+| **VR/XR tests**       | `tests/xr/`                                            | WebXR session, controller, comfort    | All XR features     |
 
 ### 16.2 Test File Naming Convention
 
@@ -1222,6 +1329,8 @@ Examples:
 - `tests/missions/parser.test.ts` — Tokenizer, brace parser, cursor stack
 - `tests/targets/turn-toward.test.ts` — AI turn primitive
 - `tests/effects/explosion.test.ts` — Explosion generation and pooling
+- `tests/xr/controller-mapping.test.ts` — VR input to flight commands
+- `tests/xr/hud-panels.test.ts` — DOM Overlay panel rendering
 
 ### 16.3 Key Test Scenarios
 
@@ -1257,6 +1366,11 @@ Examples:
 | `openid-verify.check-ownership`       | network/openid-verify     | Steam Web API verification      |
 | `integration.train01-load`            | integration/mission-load  | Full mission load from file     |
 | `integration.combat-flow`             | integration/combat-flow   | Fire → hit → damage chain       |
+| `xr.webxr-init.session-start-stop`    | xr/webxr-init            | XR session lifecycle            |
+| `xr.camera-swap.xr-vs-standard`       | xr/camera-swap           | Camera mode switching           |
+| `xr.controller-mapping.all-inputs`    | xr/controller-mapping    | All VR controller inputs mapped |
+| `xr.hud-panels.rendering-scale`       | xr/hud-panels            | DOM Overlay panel layout        |
+| `xr.comfort.vignette-toggle`          | xr/comfort               | Motion sickness prevention      |
 
 ### 16.4 Property-Based Tests (Invariant Suite)
 
@@ -1285,22 +1399,24 @@ describe('Physics Invariants', () => {
 
 ---
 
-## 17. Risk Register
+## 18. Risk Register
 
 | Risk                               | Impact                           | Mitigation                                                                             |
 | ---------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------- |
 | **BabylonJS Y-up conversion bugs** | All positions/orientations wrong | Dedicated `toBabylonVec3`/`fromBabylonVec3` boundary functions; test with known values |
 | **Mission file parser complexity** | Can't load original missions     | Start with simplest mission (train01), add features incrementally                      |
-| **.tri model loading**             | Ships/stations don't render      | Implement basic .tri loader first, AC3D later                                          |
+| **GLTF model loading**             | Ships/stations don't render      | Test GLTF loader early in Phase 1; use BabylonJS's built-in GLTF loader                  |
 | **Performance with 65K stars**     | FPS drops                        | Distance culling, LOD at 200² and 5000² thresholds                                     |
 | **Electron/Tauri build conflicts** | Can't test native builds         | Keep Electron and Tauri configs minimal; merge Vite output into both                   |
 | **Network code complexity**        | Multiplayer takes too long       | Phase 10 is last; start with interfaces only, implement later                          |
 | **Headless server in Node**        | BabylonJS dependency leak        | Server.ts has zero BabylonJS imports; pure data processing                             |
-| **PPM texture loading**            | Planet textures fail             | Implement basic PPM reader; fallback to color if texture fails                         |
 | **steamworks.js compatibility**    | Steam SDK won't load in Electron | Test early in Phase 0; have fallback to manual Steam auth via Web API                  |
 | **Relay server complexity**        | Dual transport too hard          | Start with WebSocket-only, add Steam SDR as optional module                            |
 | **OpenID auth flow issues**        | Browser players can't verify     | Fallback: simple password + SteamID64 check; upgrade to full OpenID later              |
 | **Steam Web API rate limits**      | Server discovery fails           | Cache server list with TTL; retry with exponential backoff                             |
+| **WebXRManager integration**       | XR session crashes on some headsets | Test early with Quest browser; fallback to standard camera for non-XR              |
+| **Motion sickness in VR**          | Players can't tolerate VR        | No artificial locomotion; vignette during warp; comfort settings toggle               |
+| **VR controller mapping complexity**| Different headsets have different controllers | Abstract input layer; test on Oculus Touch, Index, Vive simultaneously       |
 
 ---
 
