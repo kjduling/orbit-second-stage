@@ -538,6 +538,17 @@ interface EventBus<TEvents extends Record<string, unknown>> {
 **Duration:** ~2-3 days
 **Visual gratification:** 🌟🌟🌟 Stars, ship, camera orbit — immediate payoff!
 
+### 5.0 Early Visual Feedback (New — 2026-11-24)
+
+**Goal:** See *something* on screen fast. Not just a black canvas — a recognizable solar system layout.
+
+| #   | Task                                                        | Deliverable                                      | Tests                                                                              |
+| --- | ----------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 1.0 | Quick visual prototype: sun, colored planets, ship wireframe | Recognizable solar system in browser             | N/A (visual inspection)                                                            |
+| 1.7 | Inline WebXR session — test XR without headset              | XR session renders to canvas (no immersive yet)  | `tests/xr/webxr-inline.test.ts` — session start/stop, WebXR unsupported fallback   |
+
+> **Why these early?** You shouldn't wait months for VR. Phase 1.0 gets visual gratification immediately after the scene is initialized. Phase 1.7 validates the WebXR integration path using inline mode (no headset needed), so you can test XR session lifecycle before committing to immersive VR in Phase 12.
+
 ### 5.1 Tasks
 
 | #   | Task                                                        | Deliverable                                      | Tests                                                                              |
@@ -1354,7 +1365,8 @@ class XRHUDManager {
 - WebXR works in **both web and native builds** (Electron supports WebXR via `--enable-features=WebXRPolyfill`)
 - No separate networking needed — VR player joins multiplayer sessions like any other client
 - `WebXRManager` integrates into existing BabylonJS scene with minimal changes
-- **Phase placement:** After Phase 10 (multiplayer) so VR can optionally join shared sessions
+- **Phase placement:** Inline XR validated in Phase 1.7 (no headset needed). Immersive VR in Phase 12 depends on Phase 2 (flight physics) and Phase 1 (scene), NOT on multiplayer. Multiplayer integration (task 12.11) is optional and can be done after immersive VR is working.
+- **Early XR path:** Phase 1.0 → visual prototype → Phase 1.7 → inline XR test → Phase 12 → immersive VR with headset
 
 ---
 

@@ -3,19 +3,19 @@ tags:
   - 'type:feature'
   - 'phase:12'
   - 'area:xr'
-  - 'priority:low'
+  - 'priority:medium'
 assigned: Qwen
 progress: 0
 created: 2026-11-24T03:47:27.842Z
-updated: 2026-11-24T05:00:19.915Z
+updated: 2026-11-24T17:13:22.195Z
 ---
 
 # Phase 12.1: Integrate WebXRManager in BabylonJS scene
 
 **Task ID:** 12.1
 **Phase:** 12 — WebXR / VR Support (Stretch Goal)
-**Dependencies:** Phase 10 (Multiplayer Layer), Phase 1 (BabylonJS scene)
-**Type:** Feature | **Priority:** Stretch
+**Dependencies:** Phase 2 (Flight Physics), Phase 1 (BabylonJS scene), Phase 1.7 (Inline XR tested)
+**Type:** Feature | **Priority:** Medium
 
 ---
 
@@ -27,16 +27,18 @@ updated: 2026-11-24T05:00:19.915Z
 ---
 
 **Objective:**
-Integrate BabylonJS WebXRManager as the entry point for VR sessions. This is a stretch goal after core gameplay is solid. WebXR works in both web and native builds (Electron supports WebXR via flags).
+Integrate BabylonJS WebXRManager as the entry point for **immersive VR sessions**. Phase 1.7 already validated inline XR in-browser; this task promotes it to full immersive-vr with headset tracking. WebXR works in both web and native builds (Electron supports WebXR via flags).
+
+**Note:** Phase 1.7 (early inline XR) should be completed first to validate the WebXR integration path. This task focuses on the *immersive* headset experience.
 
 **Deliverables:**
-- `src/xr/WebXRManager.ts` — WebXR session management
+- `src/xr/WebXRManager.ts` — WebXR session management (immersive mode)
 - `tests/xr/webxr-init.test.ts` — session start/stop tests
 
 **Subtasks:**
 - [ ] Import BabylonJS WebXR modules: WebXRManager, XRInputSource
 - [ ] Create `WebXRManager` class wrapping BabylonJS WebXRManager
-- [ ] Implement `enterXR()`: request immersive-vr session with required features (inline first for testing)
+- [ ] Implement `enterXR()`: request immersive-vr session with required features (reference space, local-floor)
 - [ ] Implement `exitXR()`: gracefully end XR session, restore standard camera
 - [ ] Handle session lifecycle: started, ended, lost, reference space changes
 - [ ] Store standard camera state before XR swap, restore on exit
@@ -45,17 +47,17 @@ Integrate BabylonJS WebXRManager as the entry point for VR sessions. This is a s
 
 **Unit Tests Required (≥90% coverage):**
 - **Happy paths:**
-  - enterXR(): WebXR session starts successfully, XR camera active
+  - enterXR(): immersive VR session starts successfully, XR camera active with HMD tracking
   - exitXR(): session ends, standard camera restored, state preserved
   - Session lost (headset disconnected): graceful recovery to standard mode
-  - Inline session (testing without headset): works for development
+  - Inline session fallback: works for development without headset
 - **Sad paths:**
   - WebXR not supported by browser: enterXR() throws descriptive error with fallback message
   - XR session rejected (permissions): error logged, user prompted
   - Re-enter XR while already in XR: throws error, logs warning
   - Exit XR without active session: no-op, no crash
 
-**Completion Criteria:** All tests pass with ≥90% coverage. WebXRManager handles session lifecycle correctly.
+**Completion Criteria:** All tests pass with ≥90% coverage. WebXRManager handles immersive VR session lifecycle correctly.
 
 ---
 
@@ -73,8 +75,8 @@ Integrate BabylonJS WebXRManager as the entry point for VR sessions. This is a s
 
 ## Relations
 
-- [depends-on phase-10-1-define-inetwork-layer-interface-spnetwork-layer-no-op](phase-10-1-define-inetwork-layer-interface-spnetwork-layer-no-op.md)
-- [depends-on phase-1-1-initialize-babylonjs-scene](phase-1-1-initialize-babylonjs-scene.md)
+- [depends-on phase-2-1-implement-flight-model-base-interface-newtonian-impl](phase-2-1-implement-flight-model-base-interface-newtonian-impl.md)
+- [depends-on phase-1-1-initialize-babylon-js-scene](phase-1-1-initialize-babylon-js-scene.md)
 
 ## History
 

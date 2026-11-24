@@ -466,7 +466,8 @@ BabylonJS has one of the most mature WebXR implementations in any game engine:
 
 - **WebXR is a browser feature** — works in both web and native builds (Electron supports WebXR via flags)
 - **No separate multiplayer integration needed** — VR is a single-player mode; can play in multiplayer sessions
-- **Phase placement:** Late-stage stretch goal after core gameplay is solid; requires its own phase
+- **Phase placement:** Inline XR validated early in Phase 1.7 (no headset needed). Immersive VR in Phase 12 depends on Phase 2 (flight physics) and Phase 1 (scene), NOT on multiplayer. This means you can test XR integration weeks/months before multiplayer is done.
+- **Early XR path:** Phase 1.0 (visual prototype) → Phase 1.7 (inline XR test) → Phase 12 (immersive VR with headset). You don't need to wait for core gameplay to be solid to start testing XR.
 
 ---
 

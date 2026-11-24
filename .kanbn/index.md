@@ -73,6 +73,8 @@ completedColumns:
 - [phase-10-2-10-10-binary-packet-serialization-steam-network-layer-web-socket-network-layer-sp-mp-bridge-player-sync-target-sync-server-authority-lobby-creation-joining-matchmaking](tasks/phase-10-2-10-10-binary-packet-serialization-steam-network-layer-web-socket-network-layer-sp-mp-bridge-player-sync-target-sync-server-authority-lobby-creation-joining-matchmaking.md)
 - [phase-11-2-11-12-tauri-build-file-bridges-electron-tauri-audio-setup-code-signing-steam-overlay-native-launcher-ui-platform-specific-builds-app-menu-window-management-auto-updater-crash-reporter](tasks/phase-11-2-11-12-tauri-build-file-bridges-electron-tauri-audio-setup-code-signing-steam-overlay-native-launcher-ui-platform-specific-builds-app-menu-window-management-auto-updater-crash-reporter.md)
 - [phase-12-2-12-11-vr-camera-swap-controller-input-mapping-hud-panels-for-vr-stereo-rendering-vr-input-handling-vr-performance-optimization-vr-settings-menu-teleport-locomotion-room-scale-support-vr-session-persistence](tasks/phase-12-2-12-11-vr-camera-swap-controller-input-mapping-hud-panels-for-vr-stereo-rendering-vr-input-handling-vr-performance-optimization-vr-settings-menu-teleport-locomotion-room-scale-support-vr-session-persistence.md)
+- [phase-1-0-quick-visual-prototype-—-sun-planets-ship-wireframe-on-screen](tasks/phase-1-0-quick-visual-prototype-—-sun-planets-ship-wireframe-on-screen.md)
+- [phase-1-7-early-inline-web-xr-session-—-test-xr-in-browser-without-headset](tasks/phase-1-7-early-inline-web-xr-session-—-test-xr-in-browser-without-headset.md)
 
 ## Ready
 

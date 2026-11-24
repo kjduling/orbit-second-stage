@@ -7,15 +7,15 @@ tags:
 assigned: Qwen
 progress: 0
 created: 2026-11-24T04:33:13.647Z
-updated: 2026-11-24T05:00:19.973Z
+updated: 2026-11-24T17:14:38.117Z
 ---
 
 # Phase 12.2-12.11: VR camera swap, controller input mapping, HUD panels for VR, stereo rendering, VR input handling, VR performance optimization, VR settings menu, teleport locomotion, room-scale support, VR session persistence
 
 **Task ID:** 12.2–12.11 (grouped WebXR/VR tasks)
 **Phase:** 12 — WebXR / VR Support (Stretch Goal)
-**Dependencies:** Phase 12.1 (WebXRManager), Phase 7 (HUD), Phase 2 (Flight Physics)
-**Type:** Feature | **Priority:** Stretch
+**Dependencies:** Phase 12.1 (WebXRManager), Phase 7 (HUD), Phase 2 (Flight Physics), Phase 1.7 (Inline XR validated)
+**Type:** Feature | **Priority:** Medium
 
 ---
 
@@ -29,6 +29,8 @@ updated: 2026-11-24T05:00:19.973Z
 **Objective:**
 Implement complete WebXR/VR support: VR camera swap (standard ↔ XR), controller input mapping, HUD panels adapted for VR, stereo rendering, VR input handling, VR performance optimization, VR settings menu, teleport locomotion, room-scale support, and VR session persistence.
 
+**Note:** Phase 1.7 (inline XR) should be completed first to validate the integration path. This task covers the full immersive headset experience.
+
 **Deliverables:**
 - `src/xr/XRCameraSwap.ts` — standard ↔ XR camera swap
 - `src/xr/VRControllerInput.ts` — VR controller input mapping
@@ -38,7 +40,7 @@ Implement complete WebXR/VR support: VR camera swap (standard ↔ XR), controlle
 - `src/xr/VRPerformance.ts` — VR performance optimization
 - `src/xr/VRSettingsMenu.ts` — VR settings menu
 - `src/xr/TeleportLocomotion.ts` — teleport movement in VR
-- `src/xr/RoomScale.ts` — room-scale VR support
+- `src/xr/RoomScale.ts` — room-scale VR boundary support
 - `src/xr/XRSessionPersistence.ts` — VR session state persistence
 - `tests/xr/webxr.test.ts` — all WebXR components tested
 
