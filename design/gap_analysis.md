@@ -1,4 +1,4 @@
-# Gap Analysis: Orbit.md (GDD) vs implementation_plan.md
+# Gap Analysis: Original Orbit GDD vs Orbit: Second Stage Implementation Plan
 
 > Generated: 2026-11-23 | Status: Decisions Made — Plan Update Pending
 
@@ -6,7 +6,9 @@
 
 ## Executive Summary
 
-The Game Design Document (Orbit.md) describes a **simple, self-hosted TCP multiplayer** architecture with straightforward file-based saves and native platform assets (.tri/.ac models, PPM textures, WAV audio). The implementation plan (implementation_plan.md) introduces a more complex **hybrid network architecture** (Steam + WebRTC), interface-segregated design, and ECS-lite patterns — but leaves critical gaps in protocol bridging, NAT traversal, data conversion, and platform-specific behavior.
+The original Orbit game design document describes a **simple, self-hosted TCP multiplayer** architecture with straightforward file-based saves and native platform assets (.tri/.ac models, PPM textures, WAV audio). The Orbit: Second Stage implementation plan introduces a more complex **hybrid network architecture** (Steam + WebRTC), interface-segregated design, and ECS-lite patterns — but leaves critical gaps in protocol bridging, NAT traversal, asset creation, and platform-specific behavior.
+
+Orbit: Second Stage is an inspired re-creation of the original game mechanics. It is not a port of the original C code, and no copyrighted material from the 1999 original is used. The original GDD serves as a reference for game design inspiration only.
 
 This document identifies all gaps between the two documents, categorizes them by severity, and records decisions made to close them.
 
@@ -68,6 +70,17 @@ This document identifies all gaps between the two documents, categorizes them by
 - Textures: Krita/Photoshop (original), Kenney (CC0), procedural generation
 - SFX: Freesound.org (CC0), BFXR, original compositions
 - Music: Incompetia (free), Kenney (CC0), original compositions
+
+### 1.4 Dual Game Mode — ✅ DECIDED
+
+| Aspect              | Decision                                              | Rationale                                          |
+| ------------------- | ----------------------------------------------------- | -------------------------------------------------- |
+| **Game modes**      | Original Orbit + Second Stage (sequel)                | Play the classic first; your additions come later  |
+| **Mission sets**    | `data/missions/original/` and `data/missions/second-stage/` | Clean separation, independent save tracking     |
+| **Mode selector**   | Main menu toggle: Original / Second Stage             | Simple UX, both modes share core engine            |
+| **Story context**   | Second Stage set after original events                | Future work — placeholder missions can be added incrementally |
+
+**Decision:** Build Original Orbit first as the foundation. Second Stage layers on top as an expansion with new missions, ships, weapons, and story content. Both modes share the same game engine, physics, and systems.
 
 ---
 
@@ -353,7 +366,7 @@ This research confirms our hybrid approach:
 
 ### 9.5 VR / WebXR Stretch Goal
 
-**Goal:** Play Orbit in a VR headset with full 360° visibility and VR controller flight controls.
+**Goal:** Play Orbit: Second Stage in a VR headset with full 360° visibility and VR controller flight controls.
 
 #### A. BabylonJS WebXR Support
 

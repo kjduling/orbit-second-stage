@@ -1,6 +1,6 @@
-# ORBIT — Implementation Plan
+# ORBIT: SECOND STAGE — Implementation Plan
 
-> BabylonJS / TypeScript / Vite remake of Steve Belczyk's 1999 space combat simulator.
+> An inspired re-creation of the classic Orbit space combat simulator. Built with BabylonJS / TypeScript / Vite. Not a port of the original C code — a fresh implementation of the core game mechanics, with no copyrighted material from the 1999 original.
 > Architecture-first approach: multiplayer-ready from day one, Electron + Tauri support early, high code coverage from the start.
 
 ---
@@ -34,10 +34,11 @@
 
 | Principle                 | Decision                                                                                 | Rationale                                                  |
 | ------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Dual game modes**       | Original Orbit (recreate classic) + Second Stage (your additions, sequel story)          | Play the original first; Second Stage unlocks as expansion |
 | **Multiplayer-ready**     | Event-driven ECS-lite architecture with interfaces for all game systems                  | Network layer plugs in without refactoring core logic      |
 | **Deterministic physics** | Fixed-timestep accumulator pattern (1/60s tick)                                          | Reproducible across platforms; essential for netcode later |
 | **No framework coupling** | BabylonJS only for rendering/input; everything else is pure TS                           | Easy to swap renderers, test in Node, run headless server  |
-| **Mission-first data**    | All game content driven by `.msn` files, not hardcoded                                   | Faithful to original; enables modding                      |
+| **Mission-driven design** | All game content driven by mission files, not hardcoded                                  | Re-creates original mission structure with fresh mechanics |
 | **Interface segregation** | Every system has a `I*` interface implemented by both single-player and network variants | Clean separation of concerns                               |
 | **Hybrid networking**     | Steam SDR for native (Electron/Tauri via steamworks.js), WebSocket for browsers          | Full Steam features on desktop, browser-compatible fallback |
 
@@ -125,14 +126,63 @@ Internal (Z-up)     →     BabylonJS (Y-up)
 Conversion helper: `toBabylonVec3(x, y, z)` → `(x, -z, y)`
 Inverse: `fromBabylonVec3(v)` → `(v.x, v.z, -v.y)`
 
+### 1.5 Dual Game Mode Architecture
+
+**Orbit: Second Stage ships with two playable modes:**
+
+| Mode | Description | Scope | Story Context |
+|------|-------------|-------|---------------|
+| **Original Orbit** | Faithful recreation of the 1999 game mechanics | Core gameplay loop: flight, combat, missions, solar system exploration | The events of the original Orbit — you are the pilot defending the solar system |
+| **Second Stage** | Your additional features, ships, weapons, and story content | Layers on top of Original — unlocks after completing core content | Set after the events of the original — new threats, new tech, expanded universe |
+
+**Mode selection:**
+
+```txt
+┌─────────────────────────────────────────────┐
+│              MAIN MENU                       │
+│                                              │
+│   ┌──────────────────┐  ┌────────────────┐   │
+│   │  PLAY: ORIGINAL  │  │  PLAY: 2ND STAGE│   │
+│   │                  │  │                │   │
+│   │  • Classic missions│ │  • New missions │   │
+│   │  • Original ships  │ │  • New ships    │   │
+│   │  • Standard HUD    │ │  • Enhanced HUD │   │
+│   └──────────────────┘  └────────────────┘   │
+│                                              │
+│   Options  • Credits  • Quit                 │
+└─────────────────────────────────────────────┘
+```
+
+**Mission file organization:**
+
+```
+data/missions/
+├── original/              # Classic Orbit missions (train01.msn, combat01.msn, etc.)
+│   ├── train01.msn
+│   ├── combat01.msn
+│   └── ...
+└── second-stage/          # Your expansion missions (unlocked after story progression)
+    ├── ss01-intro.msn
+    ├── ss02-escalation.msn
+    └── ...
+```
+
+**Implementation approach:**
+
+- Both modes share the same core game engine, physics, and systems
+- Mode selection determines which mission sets, ships, weapons, and HUD elements are available
+- Second Stage missions can reference Original content (existing planets, stations) as part of the story
+- Save system tracks progress per mode independently
+- Story development for Second Stage is future work — placeholder missions can be added incrementally
+
 ---
 
 ## 2. Project Structure
 
 ```txt
-orbit/
-├── design/                    # GDD, architecture docs
-│   ├── Orbit.md               # Game Design Document (completed)
+orbit-second-stage/
+├── design/                    # Original game docs, architecture docs
+│   ├── original_orbit_gdd.md  # Original Orbit GDD (reference / inspiration only)
 │   └── implementation_plan.md # This file
 ├── src/
 │   ├── index.ts               # Web entry point (boot Babylon scene)
@@ -377,7 +427,7 @@ export default defineConfig({
 
 **Phase 0 setup:**
 
-- `tauri/tauri.conf.json` — basic config, app ID `orbit.space`
+- `tauri/tauri.conf.json` — basic config, app ID `orbit.secondstage`
 - `tauri/Cargo.toml` — Rust deps: `tauri`, `steamworks.js` (via N-API)
 - Tauri backend serves the Vite-built static files
 - Rust handlers for native file I/O and audio (if needed)
@@ -426,14 +476,16 @@ Server:
 | 0.9  | Implement `Logger` (structured, log levels)                           | `tests/core/logger.test.ts` — log levels, output formatting                             | ≥90% coverage |
 | 0.10 | Initialize Electron app (`electron/`)                                 | `npm run electron:start` opens window                                                   | N/A           |
 | 0.11 | Initialize Tauri app (`tauri/`)                                       | `npm run tauri:dev` opens window                                                        | N/A           |
-| 0.12 | Source/create original assets: ship, station, starfield GLTF models       | All models in `data/models/` as GLTF/GLB                            | N/A           |
-| 0.13 | Source/create original textures: planets, space backgrounds (PNG/WebP)    | All textures in `data/textures/`                                    | N/A           |
-| 0.14 | Source/create original sound effects: engines, weapons, explosions        | All SFX in `data/sounds/` as WAV/Ogg                                | N/A           |
-| 0.15 | Source/create original music tracks                                       | All music in `data/music/` as Ogg/MP3                               | N/A           |
-| 0.16 | Scaffold relay server (`RelayServer.ts`)                                  | Dual transport: Steam SDR + WebSocket listeners                     | N/A           |
-| 0.17 | Integrate `steamworks.js` for Electron/Tauri                          | Full Steam SDK access in native builds (lobby, SDR, overlay)                             | N/A           |
-| 0.18 | Implement Steam OpenID auth flow                                      | Browser → OpenID login → SteamID64 verification via Web API                              | N/A           |
-| 0.19 | Implement server discovery (`IGameServersService/GetServerList`)      | JSON server list endpoint for browser matchmaking                                       | N/A           |
+| 0.12 | Define `GameMode` enum + mode selector infrastructure                   | `src/core/game-mode.ts` — Original / Second Stage toggle, save tracking                 | `tests/core/game-mode.test.ts` |
+| 0.13 | Create mission directory structure (`data/missions/original/`, `second-stage/`) | Mission loader resolves correct set based on active mode   | `tests/core/mission-loader.test.ts` — path resolution per mode |
+| 0.14 | Source/create original assets: ship, station, starfield GLTF models       | All models in `data/models/` as GLTF/GLB                            | N/A           |
+| 0.15 | Source/create original textures: planets, space backgrounds (PNG/WebP)    | All textures in `data/textures/`                                    | N/A           |
+| 0.16 | Source/create original sound effects: engines, weapons, explosions        | All SFX in `data/sounds/` as WAV/Ogg                                | N/A           |
+| 0.17 | Source/create original music tracks                                       | All music in `data/music/` as Ogg/MP3                               | N/A           |
+| 0.18 | Scaffold relay server (`RelayServer.ts`)                                  | Dual transport: Steam SDR + WebSocket listeners                     | N/A           |
+| 0.19 | Integrate `steamworks.js` for Electron/Tauri                              | Full Steam SDK access in native builds (lobby, SDR, overlay)        | N/A           |
+| 0.20 | Implement Steam OpenID auth flow                                          | Browser → OpenID login → SteamID64 verification via Web API         | N/A           |
+| 0.21 | Implement server discovery (`IGameServersService/GetServerList`)          | JSON server list endpoint for browser matchmaking                   | N/A           |
 
 ### 4.2 Key Interfaces (Phase 0)
 
@@ -1040,7 +1092,7 @@ interface IGame {
 | Scenario | Where Saves Are Stored | Can Upload to Server? | Can Download from Server? |
 |----------|----------------------|----------------------|--------------------------|
 | **Single-player (web)** | Browser IndexedDB | ❌ No | ❌ No |
-| **Single-player (Electron/Tauri)** | Local filesystem (`~/.orbit/saves/`) | ❌ No | ❌ No |
+| **Single-player (Electron/Tauri)** | Local filesystem (`~/.orbit-second-stage/saves/`) | ❌ No | ❌ No |
 | **Multiplayer session** | Server-side file only | N/A | N/A |
 
 **Rationale:**
@@ -1209,7 +1261,7 @@ RelayServer.ts:
 
 ## 16. Phase 12 — WebXR / VR Support (Stretch Goal)
 
-**Goal:** Play Orbit in a VR headset with full 360° visibility and VR controller flight controls.
+**Goal:** Play Orbit: Second Stage in a VR headset with full 360° visibility and VR controller flight controls.
 **Duration:** ~3-4 days (stretch goal, after core gameplay solid)
 **Visual gratification:** 🌟🌟🌟🌟🌟🌟 Put on the headset and fly the Defiant!
 
