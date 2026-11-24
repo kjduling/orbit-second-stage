@@ -38,7 +38,7 @@
 | **Multiplayer-ready**     | Event-driven ECS-lite architecture with interfaces for all game systems                  | Network layer plugs in without refactoring core logic      |
 | **Deterministic physics** | Fixed-timestep accumulator pattern (1/60s tick)                                          | Reproducible across platforms; essential for netcode later |
 | **No framework coupling** | BabylonJS only for rendering/input; everything else is pure TS                           | Easy to swap renderers, test in Node, run headless server  |
-| **Mission-driven design** | All game content driven by mission files, not hardcoded                                  | Re-creates original mission structure with fresh mechanics |
+| **Mission-driven design** | All game content driven by JSON mission files (not hardcoded) | Re-creates original mission structure with fresh mechanics; JSON format enables web serving and future mission editor tooling |
 | **Interface segregation** | Every system has a `I*` interface implemented by both single-player and network variants | Clean separation of concerns                               |
 | **Hybrid networking**     | Steam SDR for native (Electron/Tauri via steamworks.js), WebSocket for browsers          | Full Steam features on desktop, browser-compatible fallback |
 
