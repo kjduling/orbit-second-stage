@@ -7,32 +7,30 @@ tags:
 assigned: Qwen
 progress: 0
 created: 2026-11-24T04:31:33.575Z
-updated: 2026-11-24T05:00:04.186Z
+updated: 2026-11-24T19:15:45.272Z
 ---
 
-# Phase 11.2-11.12: Tauri build, file bridges (Electron + Tauri), audio setup, code signing, Steam overlay, native launcher UI, platform-specific builds, app menu, window management, auto-updater, crash reporter
+# Phase 11.2-11.12: Electron build, file bridges, audio setup, code signing, Steam overlay, native launcher UI, platform-specific builds, app menu, window management, auto-updater
 
 **Task ID:** 11.2–11.12 (grouped native build tasks)
-**Phase:** 11 — Electron / Tauri Native Builds
+**Phase:** 11 — Electron Native Builds
 **Dependencies:** Phase 11.1 (Electron production build), Phase 10 (Multiplayer Layer)
 **Type:** Feature | **Priority:** High
 
 ---
 
 **References:**
-- Consult `design/Orbit.md` §16 (Implementation Notes — Electron/Tauri support, native builds)
+- Consult `design/Orbit.md` §16 (Implementation Notes — Electron support, native builds)
 - Consult `design/implementation_plan.md` §15.1 tasks 11.2–11.12 — Native build components
-- Consult `design/gap_analysis.md` §9.3 (Electron/Tauri — full Steam SDK access via steamworks.js)
+- Consult `design/gap_analysis.md` §9.3 (Electron — full Steam SDK access via steamworks.js)
 
 ---
 
 **Objective:**
-Implement complete native build support: Tauri build pipeline, file bridges for saves and missions on both Electron and Tauri, audio setup, code signing for all platforms, Steam overlay integration, native launcher UI, platform-specific builds, app menu, window management, auto-updater, and crash reporter.
+Implement complete native build support: Electron build pipeline, file bridges for saves and missions, audio setup, code signing for all platforms, Steam overlay integration, native launcher UI, platform-specific builds, app menu, window management, auto-updater, and crash reporter.
 
 **Deliverables:**
-- `src/native/TauriBridge.ts` — Tauri file system bridge
 - `src/native/ElectronFileBridge.ts` — Electron file system bridge
-- `src/native/TauriFileBridge.ts` — Tauri file system bridge
 - `src/native/AudioSetup.ts` — native audio setup (WebAudio + native)
 - `src/native/CodeSigning.ts` — code signing for macOS/Windows/Linux
 - `src/native/SteamOverlay.ts` — Steam overlay integration
@@ -40,14 +38,12 @@ Implement complete native build support: Tauri build pipeline, file bridges for 
 - `tests/native/native-builds.test.ts` — all native components tested
 
 **Subtasks:**
-- [ ] 11.2: Implement Tauri build pipeline (parallel to Electron)
 - [ ] 11.3: Implement ElectronFileBridge: file I/O for saves/missions
-- [ ] 11.4: Implement TauriFileBridge: file I/O for saves/missions
 - [ ] 11.5: Implement AudioSetup: native audio setup (WebAudio + native backends)
 - [ ] 11.6: Implement CodeSigning: codesign, notarytool for macOS; NSIS for Windows
 - [ ] 11.7: Implement SteamOverlay: Shift+Tab overlay in Electron builds
 - [ ] 11.8: Implement LauncherUI: native window with mission select, settings
-- [ ] 11.9: Implement platform-specific builds: build:electron:mac/win/linux, build:tauri:mac/win/linux
+- [ ] 11.9: Implement platform-specific builds: build:electron:mac/win/linux
 - [ ] 11.10: Implement AppMenu: native application menu (File, Edit, View, Help)
 - [ ] 11.11: Implement WindowManagement: fullscreen, resizable, minimize
 - [ ] 11.12: Implement AutoUpdater: check for updates, download, install
@@ -56,7 +52,6 @@ Implement complete native build support: Tauri build pipeline, file bridges for 
 **Unit Tests Required (≥90% coverage):**
 - **Happy paths:**
   - Electron file bridge: reads/writes save files correctly
-  - Tauri file bridge: reads/writes save files correctly
   - Audio setup: native audio backend initialized correctly
   - Code signing: macOS app codesigned and notarized successfully
   - Steam overlay: Shift+Tab opens overlay in Electron builds
@@ -70,7 +65,7 @@ Implement complete native build support: Tauri build pipeline, file bridges for 
   - Steam overlay not available (non-Steam build): no-op, no crash
   - Auto-update check fails: logs warning, continues with current version
 
-**Completion Criteria:** All tests pass with ≥90% coverage. Native builds fully functional: Electron and Tauri both produce distributable packages.
+**Completion Criteria:** All tests pass with ≥90% coverage. Electron builds fully functional across macOS, Windows, Linux.
 
 ---
 
@@ -78,14 +73,12 @@ Implement complete native build support: Tauri build pipeline, file bridges for 
 
 ## Sub-tasks
 
-- [ ] 11.2: Implement Tauri build pipeline (parallel to Electron)
 - [ ] 11.3: Implement ElectronFileBridge: file I/O for saves/missions
-- [ ] 11.4: Implement TauriFileBridge: file I/O for saves/missions
 - [ ] 11.5: Implement AudioSetup: native audio setup (WebAudio + native backends)
 - [ ] 11.6: Implement CodeSigning: codesign, notarytool for macOS; NSIS for Windows
 - [ ] 11.7: Implement SteamOverlay: Shift+Tab overlay in Electron builds
 - [ ] 11.8: Implement LauncherUI: native window with mission select, settings
-- [ ] 11.9: Implement platform-specific builds: build:electron:mac/win/linux, build:tauri:mac/win/linux
+- [ ] 11.9: Implement platform-specific builds: build:electron:mac/win/linux
 - [ ] 11.10: Implement AppMenu: native application menu (File, Edit, View, Help)
 - [ ] 11.11: Implement WindowManagement: fullscreen, resizable, minimize
 - [ ] 11.12: Implement AutoUpdater: check for updates, download, install

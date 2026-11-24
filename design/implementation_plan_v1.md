@@ -1,7 +1,7 @@
 # ORBIT: SECOND STAGE — Implementation Plan
 
 > An inspired re-creation of the classic Orbit space combat simulator. Built with BabylonJS / TypeScript / Vite. Not a port of the original C code — a fresh implementation of the core game mechanics, with no copyrighted material from the 1999 original.
-> Architecture-first approach: multiplayer-ready from day one, Electron + Tauri support early, high code coverage from the start.
+> Architecture-first approach: multiplayer-ready from day one, Electron support early, high code coverage from the start.
 
 ---
 
@@ -21,7 +21,7 @@
 12. [Phase 8 — Events & Game Flow](#12-phase-8--events--game-flow)
 13. [Phase 9 — Save System & Polish](#13-phase-9--save-system--polish)
 14. [Phase 10 — Multiplayer Layer](#14-phase-10--multiplayer-layer)
-15. [Phase 11 — Electron / Tauri Native Builds](#15-phase-11--electron--tauri-native-builds)
+15. [Phase 11 — Electron Native Builds](#15-phase-11--electron-native-builds)
 16. [Phase 12 — WebXR / VR Support (Stretch Goal)](#16-phase-12--webxr--vr-support-stretch-goal)
 17. [Testing Strategy](#17-testing-strategy)
 18. [Risk Register](#18-risk-register)
@@ -40,22 +40,15 @@
 | **No framework coupling** | BabylonJS only for rendering/input; everything else is pure TS                           | Easy to swap renderers, test in Node, run headless server  |
 | **Mission-driven design** | All game content driven by JSON mission files (not hardcoded) | Re-creates original mission structure with fresh mechanics; JSON format enables web serving and future mission editor tooling |
 | **Interface segregation** | Every system has a `I*` interface implemented by both single-player and network variants | Clean separation of concerns                               |
-| **Hybrid networking**     | Steam SDR for native (Electron/Tauri via steamworks.js), WebSocket for browsers          | Full Steam features on desktop, browser-compatible fallback |
+| **Hybrid networking**     | Steam SDR for native (Electron via steamworks.js), WebSocket for browsers          | Full Steam features on desktop, browser-compatible fallback |
 
 ### 1.2 Network-Ready Architecture Pattern
 
-```txt
-                    ┌─────────────┐
-                    │  IGame      │  ← All game logic interfaces
-                    │  Interface  │
-                    └──────┬──────┘
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-        ┌─────▼─────┐ ┌───▼────┐ ┌────▼─────┐
-        │ SPGame     │ │ NetGame│ │ Headless │
-        │ (impl)     │ │ (impl) │ │ Server   │
-        └────────────┘ └────────┘ └──────────┘
+```mermaid
+graph TD
+    IGame["IGame Interface\nAll game logic interfaces"] --> SPGame["SPGame impl"]
+    IGame --> NetGame["NetGame impl"]
+    IGame --> Headless["Headless Server"]
 ```
 
 Every game system follows this pattern:
@@ -68,34 +61,24 @@ Every game system follows this pattern:
 
 **Critical: Browser and native clients use different transport layers.**
 
-```txt
-                    ┌─────────────────────────────────┐
-                    │     Relay Server (Phase 11)      │
-                    │                                  │
-         ┌──────────┼──────────┐              ┌───────▼───────┐
-         │          │          │              │               │
-    ┌────▼───┐  ┌───▼───┐  ┌──▼──┐   WebSocket│  Dedicated   │
-    │ Steam  │  │ Steam │  │ ... │────────────│  Server      │
-    │ Client │  │ Lobby │  │     │   (wss://) │  (Steam SDR  │
-    │ (SDR)  │  │       │  │     │            │   + WebSocket│
-    └────────┘  └───────┘  └─────┘            │   dual port)│
-                                              └─────────────┘
-         ┌─────────────────────────────────────────────────────┐
-         │                                                      │
-    ┌────▼───┐     Steamworks SDK     ┌────────────────────────┐
-    │ Electron│ ← steamworks.js (Rust) │  Browser Client        │
-    │ / Tauri │                        │ (WebSocket/wss://)     │
-    └─────────┘                        └────────────────────────┘
-         ▲                                   ▲
-         │ Full Steam SDK access             │ OpenID + Web API auth
-         │ (lobby, overlay, SDR, auth)       │ (SteamID64 verification)
+```mermaid
+graph TB
+    subgraph Clients["Clients"]
+        Electron["Electron Client\nSteam SDR via steamworks.js"]
+        Browser["Browser Client\nWebSocket wss://"]
+    end
+    Relay["Relay Server (Phase 11)\nSteam SDR + WebSocket dual port"]
+    Dedicated["Dedicated Server\nSteam SDR + WebSocket"]
+    Electron -->|Session ticket| Relay
+    Browser -->|OpenID auth| Relay
+    Relay --> Dedicated
 ```
 
 **Platform-specific networking:**
 
 | Platform | Transport | Auth | Features |
 |----------|-----------|------|----------|
-| **Electron/Tauri** | Steam SDR via `steamworks.js` | Session ticket | Lobbies, overlay, matchmaking, NAT punch |
+| **Electron** | Steam SDR via `steamworks.js` | Session ticket | Lobbies, overlay, matchmaking, NAT punch |
 | **Browser** | WebSocket (`wss://`) to relay | OpenID 2.0 → Web API | Server-verified ownership, no Steam overlay |
 | **Dedicated Server** | Steam SDR + WebSocket dual port | GSLT | Master Server registration, bridges both worlds |
 
@@ -116,11 +99,10 @@ Every game system follows this pattern:
 
 All position/orientation data from mission files and physics is stored in a **Z-up internal coordinate system**, then converted to Y-up for BabylonJS rendering only at the boundary layer.
 
-```txt
-Internal (Z-up)     →     BabylonJS (Y-up)
-  X → X                  X → X
-  Y → Z                  Y → Z
-  Z → -Y                 Z → -Y
+```mermaid
+graph LR
+    Zup["Internal Z-up\n(x, y, z)"] -->|toBabylonVec3| Yup["BabylonJS Y-up\n(x, -z, y)"]
+    Yup -->|fromBabylonVec3| Zup
 ```
 
 Conversion helper: `toBabylonVec3(x, y, z)` → `(x, -z, y)`
@@ -137,20 +119,11 @@ Inverse: `fromBabylonVec3(v)` → `(v.x, v.z, -v.y)`
 
 **Mode selection:**
 
-```txt
-┌─────────────────────────────────────────────┐
-│              MAIN MENU                       │
-│                                              │
-│   ┌──────────────────┐  ┌────────────────┐   │
-│   │  PLAY: ORIGINAL  │  │  PLAY: 2ND STAGE│   │
-│   │                  │  │                │   │
-│   │  • Classic missions│ │  • New missions │   │
-│   │  • Original ships  │ │  • New ships    │   │
-│   │  • Standard HUD    │ │  • Enhanced HUD │   │
-│   └──────────────────┘  └────────────────┘   │
-│                                              │
-│   Options  • Credits  • Quit                 │
-└─────────────────────────────────────────────┘
+```mermaid
+graph TD
+    Menu["Main Menu"] --> Original["Play: Original\nClassic missions, ships, standard HUD"]
+    Menu --> SecondStage["Play: 2nd Stage\nNew missions, ships, enhanced HUD"]
+    Menu --> Options["Options | Credits | Quit"]
 ```
 
 **Mission file organization:**
@@ -280,10 +253,6 @@ orbit-second-stage/
 │   ├── preload.js             # Security bridge
 │   └── package.json           # Electron-specific deps
 │
-├── tauri/                     # Tauri app (Rust backend)
-│   ├── src/                   # Rust Tauri handlers
-│   ├── tauri.conf.json        # Tauri config
-│   └── Cargo.toml             # Rust dependencies
 │
 ├── tests/                     # Test suite (mirrors src/)
 │   ├── core/
@@ -352,9 +321,7 @@ orbit-second-stage/
   "scripts": {
     "dev": "vite --open",
     "build": "tsc && vite build",
-    "build:electron": "npm run build && cd electron && npm run build",
-    "build:tauri": "npm run build && tauri build",
-    "preview": "vite preview",
+    "build:electron": "npm run build && cd electron && npm run build",    "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -365,14 +332,11 @@ orbit-second-stage/
     "format": "prettier --write src/**/*.ts tests/**/*.ts",
     "docs": "npx typedoc",
     "server:start": "node dist/network/Server.js",
-    "electron:start": "npm run build && cd electron && npm start",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
-  }
+    "electron:start": "npm run build && cd electron && npm start",  }
 }
 ```
 
-### 3.2 Vitest Configuration (mirrors CharGen)
+### 3.2 Vitest Configuration 
 
 ```typescript
 // vitest.config.ts
@@ -397,7 +361,7 @@ export default defineConfig({
 })
 ```
 
-### 3.3 Coverage Thresholds (CharGen-standard)
+### 3.3 Coverage Thresholds (project-standard)
 
 | Metric     | Threshold | Notes                                              |
 | ---------- | --------- | -------------------------------------------------- |
@@ -421,31 +385,17 @@ export default defineConfig({
   - Full access to: Steam lobbies, SDR networking, overlay, session tickets, matchmaking
   - Bridge IPC between renderer (BabylonJS) and main process (Steam SDK)
 
-### 3.5 Tauri Setup (Early)
-
-**Why early:** Tauri provides a smaller footprint than Electron and is the preferred native target for performance-conscious builds.
-
-**Phase 0 setup:**
-
-- `tauri/tauri.conf.json` — basic config, app ID `orbit.secondstage`
-- `tauri/Cargo.toml` — Rust deps: `tauri`, `steamworks.js` (via N-API)
-- Tauri backend serves the Vite-built static files
-- Rust handlers for native file I/O and audio (if needed)
-- **Steam integration:** Same `steamworks.js` approach as Electron — loads Steamworks SDK in Rust backend
-
 ### 3.6 Headless Dedicated Server
 
 **Architecture:** The server is a pure Node.js process with no rendering dependencies. Dual transport layer.
 
-```txt
-Server:
-  - No BabylonJS dependency
-  - Loads missions via MissionParser
-  - Runs AI targets, physics, events
-  - Steam SDR port: Accepts native clients (via Steamworks SDK)
-  - WebSocket port: Accepts browser clients (wss://)
-  - NetworkBridge: Translates between Steam SDR and WebSocket protocols
-  - Authoritative game state
+```mermaid
+graph TB
+    Server["Headless Server\nPure Node.js, no BabylonJS"] --> MissionParser["MissionParser"]
+    Server --> AI["AI Targets + Physics"]
+    Server --> Events["Event Evaluator"]
+    Server -->|Steam SDR| NativeClients["Native Clients (Electron)"]
+    Server -->|WebSocket wss://| BrowserClients["Browser Clients"]
 ```
 
 **Files:**
@@ -475,7 +425,6 @@ Server:
 | 0.8  | Implement `RNG` (Mulberry32 seeded PRNG)                              | `tests/core/rng.test.ts` — seed determinism, range bounds, statistical distribution     | ≥90% coverage |
 | 0.9  | Implement `Logger` (structured, log levels)                           | `tests/core/logger.test.ts` — log levels, output formatting                             | ≥90% coverage |
 | 0.10 | Initialize Electron app (`electron/`)                                 | `npm run electron:start` opens window                                                   | N/A           |
-| 0.11 | Initialize Tauri app (`tauri/`)                                       | `npm run tauri:dev` opens window                                                        | N/A           |
 | 0.12 | Define `GameMode` enum + mode selector infrastructure                   | `src/core/game-mode.ts` — Original / Second Stage toggle, save tracking                 | `tests/core/game-mode.test.ts` |
 | 0.13 | Create mission directory structure (`data/missions/original/`, `second-stage/`) | Mission loader resolves correct set based on active mode   | `tests/core/mission-loader.test.ts` — path resolution per mode |
 | 0.14 | Source/create original assets: ship, station, starfield GLTF models       | All models in `data/models/` as GLTF/GLB                            | N/A           |
@@ -483,7 +432,7 @@ Server:
 | 0.16 | Source/create original sound effects: engines, weapons, explosions        | All SFX in `data/sounds/` as WAV/Ogg                                | N/A           |
 | 0.17 | Source/create original music tracks                                       | All music in `data/music/` as Ogg/MP3                               | N/A           |
 | 0.18 | Scaffold relay server (`RelayServer.ts`)                                  | Dual transport: Steam SDR + WebSocket listeners                     | N/A           |
-| 0.19 | Integrate `steamworks.js` for Electron/Tauri                              | Full Steam SDK access in native builds (lobby, SDR, overlay)        | N/A           |
+| 0.19 | Integrate `steamworks.js` for Electron                              | Full Steam SDK access in native builds (lobby, SDR, overlay)        | N/A           |
 | 0.20 | Implement Steam OpenID auth flow                                          | Browser → OpenID login → SteamID64 verification via Web API         | N/A           |
 | 0.21 | Implement server discovery (`IGameServersService/GetServerList`)          | JSON server list endpoint for browser matchmaking                   | N/A           |
 
@@ -1103,7 +1052,7 @@ interface IGame {
 | Scenario | Where Saves Are Stored | Can Upload to Server? | Can Download from Server? |
 |----------|----------------------|----------------------|--------------------------|
 | **Single-player (web)** | Browser IndexedDB | ❌ No | ❌ No |
-| **Single-player (Electron/Tauri)** | Local filesystem (`~/.orbit-second-stage/saves/`) | ❌ No | ❌ No |
+| **Single-player (Electron)** | Local filesystem (`~/.orbit-second-stage/saves/`) | ❌ No | ❌ No |
 | **Multiplayer session** | Server-side file only | N/A | N/A |
 
 **Rationale:**
@@ -1176,7 +1125,7 @@ type ASCIICommand =
 
 ### 14.3 Client Architecture — Platform-Specific
 
-**Native client (Electron/Tauri):**
+**Native client (Electron):**
 ```typescript
 class SteamNetwork implements INetworkLayer {
   // Uses steamworks.js in Electron main process
@@ -1228,13 +1177,12 @@ class WebSocketNetwork implements INetworkLayer {
 
 The relay server bridges Steam SDR clients and WebSocket clients:
 
-```txt
-RelayServer.ts:
-  - SteamGameServer_Init() → Master Server registration
-  - Steam SDR port: Accepts native clients
-  - WebSocket port: Accepts browser clients
-  - NetworkBridge: Translates packets between transports
-  - Authoritative game state (same as headless server)
+```mermaid
+graph TB
+    Relay["RelayServer.ts\nSteamGameServer_Init"] -->|Steam SDR| NativeClients["Native Clients (Electron)"]
+    Relay -->|WebSocket wss://| BrowserClients["Browser Clients"]
+    Relay --> NetworkBridge["NetworkBridge\nProtocol translation: SDR ↔ WebSocket"]
+    Relay --> Auth["Steam OpenID Verification\nCheckAppOwnership"]
 ```
 
 **Phase 11 additions to relay server:**
@@ -1245,7 +1193,7 @@ RelayServer.ts:
 
 ---
 
-## 15. Phase 11 — Electron / Tauri Native Builds
+## 15. Phase 11 — Electron Native Builds
 
 **Goal:** Production-ready native builds for macOS, Windows, Linux.
 **Duration:** ~2-3 days
@@ -1256,9 +1204,7 @@ RelayServer.ts:
 | #    | Task                                        | Deliverable                                     | Tests                                |
 | ---- | ------------------------------------------- | ----------------------------------------------- | ------------------------------------ |
 | 11.1 | Configure Electron production build         | `npm run build:electron` produces distributable | N/A                                  |
-| 11.2 | Configure Tauri production build            | `npm run tauri:build` produces distributable    | N/A                                  |
 | 11.3 | Implement native file I/O bridge (Electron) | Mission loading from disk                       | `tests/electron/file-bridge.test.ts` |
-| 11.4 | Implement native file I/O bridge (Tauri)    | Mission loading via Tauri commands              | `tests/tauri/file-bridge.test.ts`    |
 | 11.5 | Add platform-specific audio handling        | Native audio API fallbacks                      | N/A                                  |
 | 11.6 | Configure code signing (macOS)              | notarized builds                                | N/A                                  |
 | 11.7 | Configure Windows installer                 | NSIS installer                                  | N/A                                  |
@@ -1372,7 +1318,7 @@ class XRHUDManager {
 
 ## 17. Testing Strategy
 
-### 16.1 Test Categories (mirrors CharGen)
+### 16.1 Test Categories 
 
 | Category              | Location                                               | Purpose                               | Coverage Target     |
 | --------------------- | ------------------------------------------------------ | ------------------------------------- | ------------------- |
@@ -1471,7 +1417,7 @@ describe('Physics Invariants', () => {
 | **Mission file parser complexity** | Can't load original missions     | Start with simplest mission (train01), add features incrementally                      |
 | **GLTF model loading**             | Ships/stations don't render      | Test GLTF loader early in Phase 1; use BabylonJS's built-in GLTF loader                  |
 | **Performance with 65K stars**     | FPS drops                        | Distance culling, LOD at 200² and 5000² thresholds                                     |
-| **Electron/Tauri build conflicts** | Can't test native builds         | Keep Electron and Tauri configs minimal; merge Vite output into both                   |
+| **Electron build conflicts** | Can't test native builds         | keep Electron config minimal; merge Vite output into both                   |
 | **Network code complexity**        | Multiplayer takes too long       | Phase 10 is last; start with interfaces only, implement later                          |
 | **Headless server in Node**        | BabylonJS dependency leak        | Server.ts has zero BabylonJS imports; pure data processing                             |
 | **steamworks.js compatibility**    | Steam SDK won't load in Electron | Test early in Phase 0; have fallback to manual Steam auth via Web API                  |
@@ -1486,19 +1432,23 @@ describe('Physics Invariants', () => {
 
 ## Summary: Phase Dependencies
 
-```
-Phase 0 (Foundation)
-    │
-    ├──→ Phase 1 (Eye Candy) ──→ Phase 2 (Flight Physics) ──→ Phase 3 (Planets)
-    │                              │                                │
-    │                              ▼                                ▼
-    │                         Phase 5 (Combat) ←── Phase 6 (AI)
-    │                              │
-    ├──→ Phase 4 (Mission Parser) ──→ Phase 8 (Events & Flow)
-    │                                      │
-    ├──→ Phase 7 (HUD) ──────────────────┘
-    │
-    ├──→ Phase 9 (Save & Polish) ──→ Phase 10 (Multiplayer) ──→ Phase 11 (Native Builds)
+```mermaid
+graph LR
+    P0["Phase 0<br/>Foundation"] --> P1["Phase 1<br/>Eye Candy"]
+    P0 --> P4["Phase 4<br/>Mission Parser"]
+    P0 --> P7["Phase 7<br/>HUD & UI"]
+    P0 --> P9["Phase 9<br/>Save & Polish"]
+    P1 --> P2["Phase 2<br/>Flight Physics"]
+    P2 --> P3["Phase 3<br/>Planets"]
+    P2 --> P5["Phase 5<br/>Combat & Weapons"]
+    P2 --> P6["Phase 6<br/>AI Targets"]
+    P5 --> P8["Phase 8<br/>Events & Flow"]
+    P6 --> P8
+    P4 --> P8
+    P7 --> P8
+    P8 --> P9
+    P9 --> P10["Phase 10<br/>Multiplayer"]
+    P10 --> P11["Phase 11<br/>Native Builds"]
 ```
 
 **Parallelizable paths:**

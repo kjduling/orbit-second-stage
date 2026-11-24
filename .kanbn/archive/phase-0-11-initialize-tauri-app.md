@@ -8,6 +8,7 @@ assigned: Qwen
 progress: 0
 created: 2026-11-24T03:24:23.338Z
 updated: 2026-11-24T04:55:57.686Z
+column: Backlog
 ---
 
 # Phase 0.11: Initialize Tauri app
@@ -69,4 +70,8 @@ Initialize Tauri app as alternative native build target. Smaller footprint than 
   column: Backlog
   fromProgress: 0
   toProgress: 0
+  author: Kevin J. Duling
+- type: archived
+  date: 2026-11-24T19:13:53.636Z
+  fromColumn: Backlog
   author: Kevin J. Duling

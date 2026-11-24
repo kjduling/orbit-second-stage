@@ -9,7 +9,7 @@ This document defines the step-by-step implementation of **Orbit: Second Stage**
 - **Z-up internal coordinate system** converted to Y-up at the Babylon.js rendering boundary
 - **JSON mission files** replacing the original text-based `.msn` format — enables web serving, future mission editor tooling, and easier parsing
 - **Interface-segregated architecture** — every game system has an `I*` interface with single-player and network variants from day one, even if network implementations are stubs initially
-- **Electron as primary native target** — mature `steamworks.js` integration, established IPC patterns for Babylon.js ↔ Steam SDK bridge; Tauri deferred as secondary target
+- **Electron as native target** — mature `steamworks.js` integration, established IPC patterns for Babylon.js ↔ Steam SDK bridge
 - **Placeholders first** — colored spheres, boxes, and basic geometries for early phases; real GLTF models swapped in later
 - **Multiplayer-ready from day one** — interfaces designed for networked play, but implementations deferred to Phase 10
 
@@ -847,6 +847,52 @@ class QuickScene { static create(scene: BABYLON.Scene): void; }
 
 ---
 
+### Physics Constants
+
+| Constant            | Value          | Description                |
+| ------------------- | -------------- | -------------------------- |
+| `THETA`             | 1.6 rad/s      | Max rotation rate          |
+| `DELTAV`            | 0.2 units/s²   | Thrust acceleration        |
+| `WARP_COEFF`        | 0.2            | Warp velocity coefficient  |
+| `MAX_THROTTLE`      | 10,000 km/s    | Max throttle (arcade)      |
+| `MAX_WARP_THROTTLE` | 1,000,000 km/s | Max warp throttle (arcade) |
+| `SHIELD_REGEN`      | configurable   | Shield regeneration rate   |
+| `DEAD_TIME`         | 5.0 s          | Pre-respawn countdown      |
+
+### Weapon Definitions
+
+| Index | Name      | Speed    | Yield | Idle | Lifetime | Renderer    | Color   |
+| ----- | --------- | -------- | ----- | ---- | -------- | ----------- | ------- |
+| 0     | Laser     | 4000/KMU | 20    | 0.2  | 1.0      | Cross       | (1,1,0) |
+| 1     | PhotonRay | 5000/KMU | 30    | 0.3  | 0.75     | Ray         | (0,0,1) |
+| 2     | IonGun    | 4000/KMU | 30    | 0.5  | 1.5      | Tetrahedron | (0,1,0) |
+| 3     | Disruptor | 3000/KMU | 60    | 1.0  | 1.5      | Loop        | (1,1,0) |
+| N+    | Spare     | 6000/KMU | 15    | 2.0  | 1.0      | None        | (1,0,0) |
+
+### AI Strategies
+
+| Strategy | Description                                          |
+| -------- | ---------------------------------------------------- |
+| DoNothing | Does nothing, passive                               |
+| Sit1     | Turns toward player, shoots poorly                  |
+| Sit2     | Aims at future position, shoots poorly              |
+| Sit3     | Finds nearest enemy, turns toward it                |
+| Sit4     | Finds nearest enemy, predictive aim, shoots well    |
+| Hunt1    | Moves toward player, shoots                         |
+| Hunt2    | Moves toward aiming point, shoots                   |
+| Hunt3    | Moves toward closest enemy, shoots poorly           |
+| Hunt4    | Moves toward aiming point, shoots well              |
+
+### Event Triggers
+
+Approach, Depart, True, Score, Destroy, Alarm, Shields
+
+### Event Actions
+
+Message, Hide, Unhide, Destroy, Score, Enable, Disable, LoadMission, Boom, Flash
+
+---
+
 ## Dependencies
 
 ### NPM Packages
@@ -859,7 +905,7 @@ class QuickScene { static create(scene: BABYLON.Scene): void; }
 | `@babylonjs/gui` | ^7.x | 2D/3D GUI for HUD elements |
 | `typescript` | ^5.x | TypeScript compiler |
 | `vite` | ^6.x | Build tool + dev server |
-| `vitest` | ^3.x | Test runner (mirrors CharGen setup) |
+| `vitest` | ^3.x | Test runner |
 | `@vitest/coverage-v8` | ^3.x | Coverage reporting |
 | `electron` | ^33.x | Desktop app wrapper |
 | `@electron/remote` | ^2.x | Electron renderer ↔ main process bridge |
@@ -872,7 +918,7 @@ class QuickScene { static create(scene: BABYLON.Scene): void; }
 ### Key Dependency Decisions
 
 - **Babylon.js full** — WebXRManager requires the full module set; Lite strips it out
-- **Electron over Tauri** — mature `steamworks.js` integration, established IPC patterns; Tauri deferred as secondary target
+- **Electron** — mature `steamworks.js` integration, established IPC patterns for Babylon.js ↔ Steam SDK bridge
 - **Tree-shaking via Vite** — only imported Babylon.js modules end up in the bundle
 - **No Babylon.js dependency in Server.ts** — headless server is pure Node.js
 

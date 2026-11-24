@@ -28,11 +28,11 @@ This document identifies all gaps between the two documents, categorizes them by
 | **NAT traversal**       | Not addressed (LAN only)     | Not addressed                              | **Browser clients behind NAT can't connect** |
 | **Relay server**        | Not addressed                | Not addressed                              | **Needed for web↔native bridging**           |
 
-**Decision:** Steam Networking Sockets for native builds (Electron/Tauri with full SDK), WebRTC/WebSocket for browsers. Hybrid approach with relay/bridge server that exposes web-compatible transport while using Steam SDK internally.
+**Decision:** Steam Networking Sockets for native builds (Electron with full SDK), WebRTC/WebSocket for browsers. Hybrid approach with relay/bridge server that exposes web-compatible transport while using Steam SDK internally.
 
 **Implications for Plan:**
 
-- Electron/Tauri: Full Steamworks SDK via `steamworks.js` (Rust N-API wrapper) — lobbies, SDR, overlay, auth tickets
+- Electron: Full Steamworks SDK via `steamworks.js` (Rust N-API wrapper) — lobbies, SDR, overlay, auth tickets
 - Browser: WebSocket (`wss://`) or WebRTC connection to dedicated server's web transport layer
 - Dedicated server: Initializes Steam SDK (`SteamGameServer_Init`) for Master Server registration + exposes WebSocket/WebRTC alongside Steam game port
 - Authentication: Steam OpenID 2.0 in browser → Steam Web API `ISteamUser/CheckAppOwnership` for verification
@@ -116,13 +116,13 @@ This document identifies all gaps between the two documents, categorizes them by
 - `NetworkBridge.ts` — Protocol translation: Steam SDR packets ↔ WebSocket JSON messages
 - Authentication flow: Browser → Steam OpenID 2.0 → Steam Web API `CheckAppOwnership`
 - Server discovery: `IGameServersService/GetServerList` HTTP API → JSON list to browser clients
-- Electron/Tauri: Full Steamworks SDK via `steamworks.js` (Rust N-API wrapper) — lobbies, SDR, overlay, auth tickets
+- Electron: Full Steamworks SDK via `steamworks.js` (Rust N-API wrapper) — lobbies, SDR, overlay, auth tickets
 
 **Status:** Decision recorded. Tasks exist on Kanbn board (phase-0-18 through phase-0-21).
 
 ### 2.2 Mission File Access — Platform Differences
 
-| Aspect              | Native (Electron/Tauri)           | Web                                      | Gap                                     |
+| Aspect              | Native (Electron)           | Web                                      | Gap                                     |
 | ------------------- | --------------------------------- | ---------------------------------------- | --------------------------------------- |
 | **File I/O**        | Direct filesystem access          | No filesystem access                     | **Web can't load .msn files from disk** |
 | **Mission loading** | Read from `data/missions/`        | Must use URL fetch or drag-and-drop      | **Not addressed in plan**               |
@@ -147,7 +147,7 @@ This document identifies all gaps between the two documents, categorizes them by
 **Recommended decision:**
 
 - Convert WAV→Ogg for web builds (better compression, browser support)
-- Keep WAV for Electron/Tauri (native audio API supports it directly)
+- Keep WAV for Electron (native audio API supports it directly)
 - Use BabylonJS `AudioEngine` for platform-agnostic playback
 - Consider adding 3D positional audio for web (BabylonJS supports it natively)
 
@@ -165,7 +165,7 @@ This document identifies all gaps between the two documents, categorizes them by
 
 - Use BabylonJS's built-in GLTF/GLB loader (no custom loader needed)
 - PNG/WebP textures via `BABYLON.Texture` — no PPM reader needed
-- Audio: WAV for Electron/Tauri, Ogg/MP3 for web via `BABYLON.Sound`
+- Audio: WAV for Electron, Ogg/MP3 for web via `BABYLON.Sound`
 - All assets stored in `data/models/`, `data/textures/`, `data/sounds/`, `data/music/`
 
 **Status:** Decision recorded. Tasks exist on Kanbn board (phase-0-14 through phase-0-17).
@@ -305,7 +305,7 @@ These are additions in the implementation plan that have no counterpart in the G
 
 | #    | Decision                                                                      | Date       | Rationale                                                                                                                                               |
 | ---- | ----------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D001 | Steam Networking Sockets for native builds (Electron/Tauri via steamworks.js) | 2026-11-23 | Best-in-class NAT traversal, cross-platform, integrates with Steam overlay. Full SDK accessible via Rust N-API wrapper in Electron main process.        |
+| D001 | Steam Networking Sockets for native builds (Electron via steamworks.js) | 2026-11-23 | Best-in-class NAT traversal, cross-platform, integrates with Steam overlay. Full SDK accessible via Rust N-API wrapper in Electron main process.        |
 | D002 | WebSocket/WebRTC for browser builds                                           | 2026-11-23 | Only viable option for browser multiplayer; no plugin required. Connects to server's web transport layer.                                               |
 | D003 | Relay/bridge server with dual transport (Steam SDR + WebSocket/WebRTC)        | 2026-11-23 | Server initializes Steam SDK for Master Server registration, exposes web-compatible transport for browser clients. Bridge translates between protocols. |
 | D004 | Single-player saves: local only (file I/O native, IndexedDB web)              | 2026-11-23 | Clean separation; no sync complexity                                                                                                                    |
@@ -399,7 +399,7 @@ Browser cannot query Steam Master Server via UDP → server (or lightweight web 
 
 ### 9.3 Electron / Desktop Wrapper — Full Steam Access
 
-When Vite + Babylon.js is packaged in Electron (or Tauri):
+When Vite + Babylon.js is packaged in Electron :
 
 - Can load native Steamworks DLLs via `steamworks.js` (Rust-based N-API wrapper)
 - Full access to: Steam lobbies, native auth session tickets, Steam Overlay, `ISteamNetworkingSockets` relays
@@ -409,7 +409,7 @@ When Vite + Babylon.js is packaged in Electron (or Tauri):
 
 This research confirms our hybrid approach:
 
-- **Electron/Tauri:** Full Steamworks SDK via `steamworks.js` — best experience, full Steam features
+- **Electron:** Full Steamworks SDK via `steamworks.js` — best experience, full Steam features
 - **Browser:** WebSocket to relay server — limited but functional, no Steam overlay/lobby integration
 - **Dedicated Server:** Dual transport — bridges both worlds
 
